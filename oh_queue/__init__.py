@@ -1,7 +1,6 @@
 import logging
 logging.basicConfig(level=logging.INFO)
 
-
 # Flask-related stuff
 from flask import Flask, request
 from flask_socketio import SocketIO
@@ -9,6 +8,8 @@ from flask_socketio import SocketIO
 from oh_queue import assets, auth
 from oh_queue.models import db, TicketStatus
 from raven.contrib.flask import Sentry
+
+from flask_login import login_user, current_user
 
 # Initialize the application
 app = Flask(__name__)

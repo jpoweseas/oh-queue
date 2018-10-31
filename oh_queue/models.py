@@ -31,16 +31,8 @@ class User(db.Model, UserMixin):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     created = db.Column(db.DateTime, default=db.func.now())
-    email = db.Column(db.String(255), nullable=False, index=True)
-    name = db.Column(db.String(255), nullable=False)
+    pennkey = db.Column(db.String(255), nullable=False, index=True)
     is_staff = db.Column(db.Boolean, default=False)
-
-    @property
-    def short_name(self):
-        first_name = self.name.split()[0]
-        if '@' in first_name:
-            return first_name.rsplit('@')[0]
-        return first_name
 
 TicketStatus = enum.Enum('TicketStatus', 'pending assigned resolved deleted')
 
