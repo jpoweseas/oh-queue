@@ -43,7 +43,12 @@
   <!-- Should be loaded before common.js -->
   <script src="https://cdn.ravenjs.com/3.12.0/raven.min.js" crossorigin="anonymous"></script>
   <script>
-    Raven.config('https://58883f34f9e5457cbe973fe9cffb0ba7@sentry.cs61a.org/4').install();
+   {% if current_user.is_authenticated %}
+   Raven.setUserContext({
+       email: '{{ current_user.email }}',
+       id: {{ current_user.id }},
+   });
+   {% endif %}    Raven.config("").install();
   </script>
   <!-- App-specific JS -->
   {{  macros.js_asset('common.js') }}
