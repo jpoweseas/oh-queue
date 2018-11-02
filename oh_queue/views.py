@@ -8,15 +8,14 @@ from flask_login import current_user
 from flask_socketio import emit
 
 from oh_queue import app, db, socketio
+from oh_queue.auth import refresh_user
 from oh_queue.models import Ticket, TicketStatus, TicketEvent, TicketEventType
 
 def user_json(user):
     return {
         'id': user.id,
-        #CR: This is a quick change, might need to revert pennkey -> email
         'pennkey': user.pennkey,
         'name': user.name,
-        # 'shortName': user.short_name,
         'isStaff': user.is_staff,
     }
 
@@ -63,6 +62,8 @@ user_presence = collections.defaultdict(set) # An in memory map of presence.
 @app.route('/')
 @app.route('/<int:ticket_id>/')
 def index(*args, **kwargs):
+    if not current_user:
+        refresh_user()
     return render_template('index.html')
 
 def socket_error(message, category='danger', ticket_id=None):
@@ -102,12 +103,12 @@ def is_staff(f):
 
 @socketio.on('connect')
 def connect():
-    # if not current_user.is_authenticated:
-    #     pass
-    # elif current_user.is_staff:
-    #     user_presence['staff'].add(current_user.email)
-    # else:
-    #     user_presence['students'].add(current_user.email)
+    if not current_user.is_authenticated:
+        pass
+    elif current_user.is_staff:
+        user_presence['staff'].add(current_user.pennkey)
+    else:
+        user_presence['students'].add(current_user.pennkey)
 
     tickets = Ticket.query.filter(
         Ticket.status.in_([TicketStatus.pending, TicketStatus.assigned])
@@ -121,14 +122,14 @@ def connect():
 
 @socketio.on('disconnect')
 def disconnect():
-    # if not current_user.is_authenticated:
-    #     pass
-    # elif current_user.is_staff:
-    #     if current_user.email in user_presence['staff']:
-    #         user_presence['staff'].remove(current_user.email)
-    # else:
-    #     if current_user.email in user_presence['students']:
-    #         user_presence['students'].remove(current_user.email)
+    if not current_user.is_authenticated:
+        pass
+    elif current_user.is_staff:
+        if current_user.pennkey in user_presence['staff']:
+            user_presence['staff'].remove(current_user.pennkey)
+    else:
+        if current_user.pennkey in user_presence['students']:
+            user_presence['students'].remove(current_user.pennkey)
     emit_presence(user_presence)
 
 @socketio.on('refresh')

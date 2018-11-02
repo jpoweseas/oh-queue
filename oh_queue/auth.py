@@ -1,20 +1,20 @@
 from flask import Blueprint, abort, redirect, render_template, request, session, url_for
 from flask_login import LoginManager, login_user, logout_user, current_user
 
-# from werkzeug import security
-
 from oh_queue.models import db, User
+
+import os
 
 auth = Blueprint('auth', __name__)
 auth.config = {}
 
-# @auth.record
-# def record_params(setup_state):
-#     app = setup_state.app
-#     auth.course_offering = app.config.get('COURSE_OFFERING')
-#     auth.debug = app.config.get('DEBUG')
-
 login_manager = LoginManager()
+
+@auth.record
+def record_params(setup_state):
+    app = setup_state.app
+    auth.course_offering = app.config.get('COURSE_OFFERING')
+    auth.debug = app.config.get('DEBUG')
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -32,86 +32,38 @@ def user_from_pennkey(name, pennkey, is_staff):
     db.session.commit()
     return user
 
-# @login_manager.unauthorized_handler
-# def unauthorized():
-#     session['after_login'] = request.url
-#     return redirect(url_for('auth.login'))
-
-# def authorize_user(user):
-#     login_user(user, remember=True)
-#     after_login = session.pop('after_login', None) or url_for('index')
-#     # TODO validate after_login URL
-#     return redirect(after_login)
-
-@auth.route('/login/')
-def login():
-    pennkey = "jpowe"
-    name = "John Powell"
-    if not name:
-        name = pennkey
-    if ', ' in name:
-        last, first = name.split(', ')
-        name = first + ' ' + last
-    is_staff = False
-    # offering = auth.course_offering
-    # for p in info['participations']:
-    #     if p['course']['offering'] == offering and p['role'] != 'student':
-    #         is_staff = True
-    user = user_from_pennkey(name, pennkey, is_staff)
+def refresh_user(as_staff = False):
+    pennkey = os.environ.get('REMOTE_USER')
+    if not pennkey:
+        return False
+    name = pennkey
+    user = user_from_pennkey(name, pennkey, as_staff)
     login_user(user)
     return redirect(url_for('index'))
 
-# @auth.route('/assist/')
-# def try_login():
-#     if current_user.is_authenticated:
-#         return redirect(url_for('index'))
-#     callback = url_for(".authorized", _external=True)
-#     return auth.ok_auth.authorize(callback=callback)
+def set_user(pennkey, as_staff):
+    if not auth.debug:
+        abort(404)
+    os.environ["REMOTE_USER"] = pennkey
+    if refresh_user(as_staff=as_staff):
+        return redirect(url_for('index'))
+    else:
+        return abort(404)
 
-# @auth.route('/login/authorized')
-# def authorized():
-#     auth_resp = auth.ok_auth.authorized_response()
-#     if auth_resp is None:
-#         return 'Access denied: error=%s' % (request.args['error'])
-#     token = auth_resp['access_token']
-#     session['access_token'] = (token, '')  # (access_token, secret)
-#     info = auth.ok_auth.get('user').data['data']
-#     email = info['email']
-#     name = info['name']
-#     if not name:
-#         name = email
-#     if ', ' in name:
-#         last, first = name.split(', ')
-#         name = first + ' ' + last
-#     is_staff = False
-#     offering = auth.course_offering
-#     for p in info['participations']:
-#         if p['course']['offering'] == offering and p['role'] != 'student':
-#             is_staff = True
-#     user = user_from_email(name, email, is_staff)
-#     return authorize_user(user)
+@auth.route('/set_user/<string:pennkey>')
+def set_student(pennkey):
+    return set_user(pennkey, False)
 
-# @auth.route('/logout/')
-# def logout():
-#     logout_user()
-#     session.pop('access_token', None)
-#     return redirect(url_for('index'))
+@auth.route('/set_staff/<string:pennkey>')
+def set_staff(pennkey):
+    return set_user(pennkey, True)
 
-# @auth.route('/testing-login/')
-# def testing_login():
-#     if not auth.debug:
-#         abort(404)
-#     callback = url_for(".testing_authorized")
-#     return render_template('login.html', callback=callback)
-
-# @auth.route('/testing-login/authorized', methods=['POST'])
-# def testing_authorized():
-#     if not auth.debug:
-#         abort(404)
-#     form = request.form
-#     is_staff = form.get('is_staff') == 'on'
-#     user = user_from_email(form['name'], form['email'], is_staff)
-#     return authorize_user(user)
+@auth.route('/login/')
+def login():
+    if refresh_user():
+        return redirect(url_for('index'))
+    else:
+        return abort(404)
 
 def init_app(app):
     app.register_blueprint(auth)
