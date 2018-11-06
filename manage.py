@@ -29,17 +29,16 @@ def not_in_production(f):
 @not_in_production
 def seed():
     print('Seeding...')
-    for i in range(50):
+    for i in range(10):
         real_name = names.get_full_name()
         first_name, last_name = real_name.lower().split(' ')
-        email = '{0}{1}@{2}'.format(
-            random.choice([first_name, first_name[0]]),
-            random.choice([last_name, last_name[0]]),
-            random.choice(['berkeley.edu', 'gmail.com']),
+        pennkey = '{0}{1}'.format(
+            random.choice([first_name[0], first_name]),
+            random.choice([last_name[0], last_name]),
         )
-        student = User.query.filter_by(email=email).one_or_none()
+        student = User.query.filter_by(pennkey=pennkey).one_or_none()
         if not student:
-            student = User(name=real_name, email=email)
+            student = User(name=real_name, pennkey=pennkey)
             db.session.add(student)
             db.session.commit()
 

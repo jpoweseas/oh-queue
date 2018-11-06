@@ -18,12 +18,7 @@ else:
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 DATABASE_CONNECT_OPTIONS = {}
 
-LOCAL_TIMEZONE = os.getenv('TIMEZONE', 'US/Pacific')
-
-OK_KEY = os.getenv('OK_KEY')
-OK_SECRET = os.getenv('OK_SECRET')
-
-OK_SERVER_URL = os.getenv('OK_DEPLOYMENT', 'https://okpy.org')
+LOCAL_TIMEZONE = os.getenv('TIMEZONE', 'US/Eastern')
 
 COURSE_OFFERING = os.getenv('COURSE_OFFERING', 'ok/test/su16')
 COURSE_NAME = os.getenv('COURSE_NAME', 'OK')
